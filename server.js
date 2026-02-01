@@ -9,6 +9,7 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const HOST = process.env.HOST;
 
 // Middleware
 app.use(cors());
@@ -218,7 +219,7 @@ function generateOrderEmailHTML(orderData) {
 }
 
 // Start server
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-    console.log(`API endpoint: https://zone5-web-backend-vercel.vercel.app:${PORT}/api/send-order-confirmation`);
+app.listen(PORT, HOST,  () => {
+    console.log(`Server is running on host ${HOST} port ${PORT}`);
+    console.log(`API endpoint: ${HOST}:${PORT}/api/send-order-confirmation`);
 });
