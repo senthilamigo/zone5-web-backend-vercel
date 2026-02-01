@@ -220,5 +220,5 @@ function generateOrderEmailHTML(orderData) {
 // Start server
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
-    console.log(`API endpoint: http://localhost:${PORT}/api/send-order-confirmation`);
+    console.log(`API endpoint: https://zone5-new-web-vercel.vercel.app:${PORT}/api/send-order-confirmation`);
 });
