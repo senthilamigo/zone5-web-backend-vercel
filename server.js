@@ -1,38 +1,49 @@
 const express = require('express');
 const cors = require('cors');
 const nodemailer = require('nodemailer');
-const dotenv = require('dotenv');
-const path = require('path');
-
-// Load environment variables
-dotenv.config();
+require('dotenv').config();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
-const HOST = process.env.HOST;
 
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.static('public')); // Serve static files (HTML, CSS, JS)
+
+// For Vercel, we need to handle static files differently
+// Static files should be in the 'public' folder
+app.use(express.static('public'));
 
 // Email transporter configuration
-const transporter = nodemailer.createTransport({
-    service: process.env.EMAIL_SERVICE || 'gmail',
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASSWORD
-    }
-});
+let transporter;
 
-// Verify transporter configuration
-transporter.verify((error, success) => {
-    if (error) {
-        console.error('Email transporter error:', error);
-    } else {
-        console.log('Email server is ready to send messages');
-    }
-});
+function createTransporter() {
+    return nodemailer.createTransport({
+        service: process.env.EMAIL_SERVICE || 'gmail',
+        auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASSWORD
+        }
+    });
+}
+
+// Initialize transporter
+try {
+    transporter = createTransporter();
+    console.log('Email transporter initialized');
+} catch (error) {
+    console.error('Failed to initialize email transporter:', error);
+}
+
+// Verify transporter configuration (only in development)
+if (process.env.NODE_ENV !== 'production') {
+    transporter.verify((error, success) => {
+        if (error) {
+            console.error('Email transporter error:', error);
+        } else {
+            console.log('Email server is ready to send messages');
+        }
+    });
+}
 
 // API endpoint to send order confirmation email
 app.post('/api/send-order-confirmation', async (req, res) => {
@@ -45,6 +56,11 @@ app.post('/api/send-order-confirmation', async (req, res) => {
                 success: false, 
                 message: 'Missing required order information' 
             });
+        }
+
+        // Recreate transporter if needed (for serverless environments)
+        if (!transporter) {
+            transporter = createTransporter();
         }
 
         // Generate HTML email content
@@ -84,14 +100,29 @@ app.post('/api/send-order-confirmation', async (req, res) => {
         res.status(500).json({ 
             success: false, 
             message: 'Failed to send confirmation email',
-            error: error.message 
+            error: process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message 
         });
     }
 });
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-    res.json({ status: 'OK', message: 'Server is running' });
+    res.json({ 
+        status: 'OK', 
+        message: 'Server is running',
+        environment: process.env.NODE_ENV || 'development'
+    });
+});
+
+// Root endpoint
+app.get('/', (req, res) => {
+    res.json({ 
+        message: 'Zone 5 Shop Email API',
+        endpoints: {
+            health: '/api/health',
+            sendEmail: '/api/send-order-confirmation (POST)'
+        }
+    });
 });
 
 // Function to generate order confirmation email HTML
@@ -218,8 +249,14 @@ function generateOrderEmailHTML(orderData) {
     `;
 }
 
-// Start server
-app.listen(PORT, HOST,  () => {
-    console.log(`Server is running on host ${HOST} port ${PORT}`);
-    console.log(`API endpoint: ${HOST}:${PORT}/api/send-order-confirmation`);
-});
+// Export for Vercel serverless functions
+module.exports = app;
+
+// Only listen on port if not in Vercel environment
+if (process.env.VERCEL !== '1') {
+    const PORT = process.env.PORT || 3000;
+    app.listen(PORT, () => {
+        console.log(`Server is running on port ${PORT}`);
+        console.log(`API endpoint: http://localhost:${PORT}/api/send-order-confirmation`);
+    });
+}
