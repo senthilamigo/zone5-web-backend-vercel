@@ -48,7 +48,7 @@ if (process.env.NODE_ENV !== 'production') {
 // API endpoint to send order confirmation email
 app.post('/api/send-order-confirmation', async (req, res) => {
     try {
-        const { orderId, email, date, items, subtotal, shipping, total } = req.body;
+        const { orderId, email, date, items, subtotal, shipping, total, recipient, sellerEmail } = req.body;
 
         // Validate required fields
         if (!orderId || !email || !items || items.length === 0) {
@@ -63,22 +63,22 @@ app.post('/api/send-order-confirmation', async (req, res) => {
             transporter = createTransporter();
         }
 
-        // Generate HTML email content
-        const emailHTML = generateOrderEmailHTML({
-            orderId,
-            email,
-            date,
-            items,
-            subtotal,
-            shipping,
-            total
-        });
+        // Determine recipient type
+        const isSellerEmail = recipient === 'seller';
+        const recipientEmail = isSellerEmail ? sellerEmail : email;
+
+        // Generate appropriate HTML email content
+        const emailHTML = isSellerEmail 
+            ? generateSellerNotificationHTML({ orderId, email, date, items, subtotal, shipping, total })
+            : generateOrderEmailHTML({ orderId, email, date, items, subtotal, shipping, total });
 
         // Email options
         const mailOptions = {
             from: `"Zone 5 Shop" <${process.env.EMAIL_USER}>`,
-            to: email,
-            subject: `Order Confirmation - ${orderId}`,
+            to: recipientEmail,
+            subject: isSellerEmail 
+                ? `New Order Received - ${orderId}` 
+                : `Order Confirmation - ${orderId}`,
             html: emailHTML
         };
 
@@ -87,11 +87,12 @@ app.post('/api/send-order-confirmation', async (req, res) => {
 
         console.log('Email sent successfully:', info.messageId);
         console.log('Order ID:', orderId);
-        console.log('Recipient:', email);
+        console.log('Recipient Type:', isSellerEmail ? 'Seller' : 'Customer');
+        console.log('Recipient Email:', recipientEmail);
 
         res.json({ 
             success: true, 
-            message: 'Order confirmation email sent successfully',
+            message: `${isSellerEmail ? 'Seller notification' : 'Order confirmation email'} sent successfully`,
             orderId: orderId
         });
 
@@ -241,6 +242,140 @@ function generateOrderEmailHTML(orderData) {
                     <a href="#" style="color: #D97706; text-decoration: none; margin: 0 10px;">Pinterest</a>
                 </div>
                 <p style="color: #6B7280; margin: 0; font-size: 12px;">&copy; 2026 Zone 5 Shop. All rights reserved.</p>
+                <p style="color: #6B7280; margin: 10px 0 0 0; font-size: 12px; font-style: italic;">Boldly Graceful</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    `;
+}
+
+// Function to generate seller notification email HTML
+function generateSellerNotificationHTML(orderData) {
+    const { orderId, email, date, items, subtotal, shipping, total } = orderData;
+
+    const itemsHTML = items.map(item => `
+        <tr>
+            <td style="padding: 15px; border-bottom: 1px solid #eee;">
+                <div style="display: flex; align-items: center;">
+                    <img src="${item.image}" alt="${item.name}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px; margin-right: 15px;">
+                    <div>
+                        <h3 style="margin: 0 0 5px 0; font-size: 16px; color: #333;">${item.name}</h3>
+                        <p style="margin: 0; font-size: 14px; color: #666;">Code: ${item.productcode}</p>
+                        <p style="margin: 5px 0 0 0; font-size: 14px; color: #666;">Category: ${item.category || 'N/A'} / ${item.subcategory || 'N/A'}</p>
+                        <p style="margin: 5px 0 0 0; font-size: 14px; font-weight: bold; color: #333;">Quantity: ${item.quantity}</p>
+                    </div>
+                </div>
+            </td>
+            <td style="padding: 15px; border-bottom: 1px solid #eee; text-align: right; font-weight: bold; color: #D97706;">
+                ₹${(item.price * item.quantity).toLocaleString('en-IN')}
+            </td>
+        </tr>
+    `).join('');
+
+    return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>New Order Notification</title>
+    </head>
+    <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;">
+        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+            <!-- Header -->
+            <div style="background: linear-gradient(135deg, #1f2937 0%, #374151 100%); padding: 40px 20px; text-align: center;">
+                <h1 style="color: #ffffff; margin: 0; font-size: 28px;">Zone 5 Shop</h1>
+                <p style="color: #D1D5DB; margin: 10px 0 0 0; font-style: italic;">Seller Dashboard</p>
+            </div>
+
+            <!-- Alert Message -->
+            <div style="padding: 40px 30px; text-align: center; background-color: #FEF3C7; border-bottom: 3px solid #D97706;">
+                <div style="width: 60px; height: 60px; background-color: #D97706; border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center;">
+                    <span style="color: white; font-size: 30px;">🛍️</span>
+                </div>
+                <h2 style="color: #92400E; margin: 0 0 10px 0; font-size: 24px;">New Order Received!</h2>
+                <p style="color: #78350F; margin: 0; font-size: 16px;">A customer has placed an order</p>
+            </div>
+
+            <!-- Order Details -->
+            <div style="padding: 30px;">
+                <div style="background-color: #F9FAFB; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+                    <h3 style="margin: 0 0 15px 0; color: #111827; font-size: 18px;">Order Information</h3>
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <tr>
+                            <td style="padding: 8px 0; color: #6B7280; font-size: 14px;">Order ID:</td>
+                            <td style="padding: 8px 0; color: #111827; font-weight: bold; text-align: right; font-size: 14px;">${orderId}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px 0; color: #6B7280; font-size: 14px;">Order Date:</td>
+                            <td style="padding: 8px 0; color: #111827; text-align: right; font-size: 14px;">${date}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px 0; color: #6B7280; font-size: 14px;">Customer Email:</td>
+                            <td style="padding: 8px 0; color: #111827; text-align: right; font-size: 14px;">${email}</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <!-- Order Items -->
+                <h3 style="margin: 0 0 20px 0; color: #111827; font-size: 18px;">Order Items</h3>
+                <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
+                    ${itemsHTML}
+                </table>
+
+                <!-- Order Summary -->
+                <div style="background-color: #DBEAFE; padding: 20px; border-radius: 8px; border-left: 4px solid #2563EB;">
+                    <h3 style="margin: 0 0 15px 0; color: #1E3A8A; font-size: 18px;">Order Summary</h3>
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <tr>
+                            <td style="padding: 8px 0; color: #1E40AF; font-size: 14px;">Subtotal:</td>
+                            <td style="padding: 8px 0; color: #1E40AF; text-align: right; font-size: 14px;">₹${subtotal.toLocaleString('en-IN')}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px 0; color: #1E40AF; font-size: 14px;">Shipping:</td>
+                            <td style="padding: 8px 0; text-align: right; font-size: 14px; color: ${shipping === 0 ? '#10B981' : '#1E40AF'}; font-weight: ${shipping === 0 ? 'bold' : 'normal'};">
+                                ${shipping === 0 ? 'FREE' : '₹' + shipping.toLocaleString('en-IN')}
+                            </td>
+                        </tr>
+                        <tr style="border-top: 2px solid #2563EB;">
+                            <td style="padding: 15px 0 0 0; color: #1E3A8A; font-size: 18px; font-weight: bold;">Total:</td>
+                            <td style="padding: 15px 0 0 0; color: #2563EB; text-align: right; font-size: 20px; font-weight: bold;">₹${total.toLocaleString('en-IN')}</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <!-- Action Required -->
+                <div style="margin-top: 30px; padding: 20px; background-color: #FEF2F2; border-radius: 8px; border-left: 4px solid #DC2626;">
+                    <h3 style="margin: 0 0 15px 0; color: #991B1B; font-size: 16px;">⚡ Action Required</h3>
+                    <ul style="margin: 0; padding-left: 20px; color: #7F1D1D;">
+                        <li style="margin-bottom: 10px;">Process this order in your inventory system</li>
+                        <li style="margin-bottom: 10px;">Prepare items for packaging and shipping</li>
+                        <li style="margin-bottom: 10px;">Send shipping confirmation to customer: ${email}</li>
+                        <li>Update order status in your dashboard</li>
+                    </ul>
+                </div>
+
+                <!-- Quick Stats -->
+                <div style="margin-top: 30px; padding: 20px; background-color: #F0FDF4; border-radius: 8px;">
+                    <h3 style="margin: 0 0 15px 0; color: #065F46; font-size: 16px;">📊 Quick Stats</h3>
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <tr>
+                            <td style="padding: 5px 0; color: #047857; font-size: 14px;">Total Items:</td>
+                            <td style="padding: 5px 0; color: #065F46; text-align: right; font-weight: bold; font-size: 14px;">${items.reduce((sum, item) => sum + item.quantity, 0)} units</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 5px 0; color: #047857; font-size: 14px;">Order Value:</td>
+                            <td style="padding: 5px 0; color: #065F46; text-align: right; font-weight: bold; font-size: 14px;">₹${total.toLocaleString('en-IN')}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div style="background-color: #1F2937; padding: 30px; text-align: center;">
+                <p style="color: #9CA3AF; margin: 0 0 10px 0; font-size: 14px;">Zone 5 Shop - Seller Notification</p>
+                <p style="color: #6B7280; margin: 0; font-size: 12px;">This is an automated notification. Please do not reply to this email.</p>
                 <p style="color: #6B7280; margin: 10px 0 0 0; font-size: 12px; font-style: italic;">Boldly Graceful</p>
             </div>
         </div>
