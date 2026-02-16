@@ -1,6 +1,6 @@
-**Fashion E-Commerce Database Schema Documentation**
+# Zone5 shop Database Schema Documentation
 
-**Overview**
+## Overview
 
 This document describes the PostgreSQL schema design for a scalable fashion eCommerce platform supporting:
 
