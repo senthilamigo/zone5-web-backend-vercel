@@ -1,3 +1,4 @@
+
 const express = require('express');
 const cors = require('cors');
 const nodemailer = require('nodemailer');
@@ -118,6 +119,91 @@ app.post('/api/send-contact-email', async (req, res) => {
     }
 });
 
+// API endpoint for newsletter subscription
+app.post('/api/subscribe-newsletter', async (req, res) => {
+    try {
+        const { email } = req.body;
+
+        // Validate email
+        if (!email) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Email is required' 
+            });
+        }
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Invalid email format' 
+            });
+        }
+
+        // Recreate transporter if needed
+        if (!transporter) {
+            transporter = createTransporter();
+        }
+
+        // Hardcoded seller email
+        const SELLER_EMAIL = 'thisissenthilmail@gmail.com';
+        const subscribedAt = new Date().toLocaleString('en-IN', { 
+            timeZone: 'Asia/Kolkata',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+
+        // Email to seller - notification of new subscription
+        const sellerEmailHTML = generateSellerSubscriptionEmailHTML({
+            email,
+            subscribedAt
+        });
+
+        const sellerMailOptions = {
+            from: `"Zone 5 Shop Newsletter" <${process.env.EMAIL_USER}>`,
+            to: SELLER_EMAIL,
+            subject: 'New Newsletter Subscription',
+            html: sellerEmailHTML
+        };
+
+        // Email to customer - thank you note
+        const customerEmailHTML = generateCustomerSubscriptionEmailHTML({ email });
+
+        const customerMailOptions = {
+            from: `"Zone 5 Shop" <${process.env.EMAIL_USER}>`,
+            to: email,
+            subject: 'Welcome to Zone 5 Shop Newsletter!',
+            html: customerEmailHTML
+        };
+
+        // Send both emails
+        await Promise.all([
+            transporter.sendMail(sellerMailOptions),
+            transporter.sendMail(customerMailOptions)
+        ]);
+
+        console.log('Newsletter subscription emails sent successfully');
+        console.log('Subscriber:', email);
+        console.log('Subscribed at:', subscribedAt);
+
+        res.json({ 
+            success: true, 
+            message: 'Successfully subscribed to newsletter!'
+        });
+
+    } catch (error) {
+        console.error('Error processing newsletter subscription:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Failed to subscribe. Please try again later.',
+            error: process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message 
+        });
+    }
+});
+
 // API endpoint to send order confirmation email
 app.post('/api/send-order-confirmation', async (req, res) => {
     try {
@@ -194,10 +280,166 @@ app.get('/', (req, res) => {
         endpoints: {
             health: '/api/health',
             sendContactEmail: '/api/send-contact-email (POST)',
-            sendOrderEmail: '/api/send-order-confirmation (POST)'
+            sendOrderEmail: '/api/send-order-confirmation (POST)',
+            subscribeNewsletter: '/api/subscribe-newsletter (POST)'
         }
     });
 });
+
+// Function to generate seller notification email for new newsletter subscription
+function generateSellerSubscriptionEmailHTML(data) {
+    const { email, subscribedAt } = data;
+
+    return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>New Newsletter Subscription</title>
+    </head>
+    <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;">
+        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+            <!-- Header -->
+            <div style="background: linear-gradient(135deg, #1f2937 0%, #374151 100%); padding: 40px 20px; text-align: center;">
+                <h1 style="color: #ffffff; margin: 0; font-size: 28px;">Zone 5 Shop</h1>
+                <p style="color: #D1D5DB; margin: 10px 0 0 0; font-style: italic;">Boldly Graceful</p>
+            </div>
+
+            <!-- Notification -->
+            <div style="padding: 40px 30px; text-align: center; background-color: #EFF6FF; border-bottom: 3px solid #3B82F6;">
+                <div style="width: 60px; height: 60px; background-color: #3B82F6; border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center;">
+                    <span style="color: white; font-size: 30px;">📧</span>
+                </div>
+                <h2 style="color: #1E40AF; margin: 0 0 10px 0; font-size: 24px;">New Newsletter Subscription</h2>
+                <p style="color: #1E3A8A; margin: 0; font-size: 16px;">You have a new subscriber!</p>
+            </div>
+
+            <!-- Subscription Details -->
+            <div style="padding: 30px;">
+                <div style="background-color: #F9FAFB; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                    <h3 style="margin: 0 0 15px 0; color: #111827; font-size: 18px;">Subscriber Information</h3>
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <tr>
+                            <td style="padding: 8px 0; color: #6B7280; font-size: 14px;">Email:</td>
+                            <td style="padding: 8px 0; color: #111827; font-weight: bold; text-align: right; font-size: 14px;">${email}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px 0; color: #6B7280; font-size: 14px;">Subscribed At:</td>
+                            <td style="padding: 8px 0; color: #111827; text-align: right; font-size: 14px;">${subscribedAt}</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <!-- Action Note -->
+                <div style="margin-top: 20px; padding: 20px; background-color: #FEF3C7; border-radius: 8px; border-left: 4px solid #D97706;">
+                    <h3 style="margin: 0 0 10px 0; color: #92400E; font-size: 16px;">Next Steps</h3>
+                    <p style="margin: 0; color: #78350F; font-size: 14px;">
+                        Add this subscriber to your newsletter mailing list. A welcome email has been automatically sent to the subscriber.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div style="background-color: #1F2937; padding: 30px; text-align: center;">
+                <p style="color: #9CA3AF; margin: 0 0 15px 0; font-size: 14px;">This is an automated notification from your website</p>
+                <p style="color: #6B7280; margin: 0; font-size: 12px;">&copy; 2026 Zone 5 Shop. All rights reserved.</p>
+                <p style="color: #6B7280; margin: 10px 0 0 0; font-size: 12px; font-style: italic;">Boldly Graceful</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    `;
+}
+
+// Function to generate customer thank you email for newsletter subscription
+function generateCustomerSubscriptionEmailHTML(data) {
+    const { email } = data;
+
+    return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Welcome to Zone 5 Shop Newsletter</title>
+    </head>
+    <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;">
+        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+            <!-- Header -->
+            <div style="background: linear-gradient(135deg, #1f2937 0%, #374151 100%); padding: 40px 20px; text-align: center;">
+                <h1 style="color: #ffffff; margin: 0; font-size: 28px;">Zone 5 Shop</h1>
+                <p style="color: #D1D5DB; margin: 10px 0 0 0; font-style: italic;">Boldly Graceful</p>
+            </div>
+
+            <!-- Welcome Message -->
+            <div style="padding: 40px 30px; text-align: center; background-color: #F0FDF4; border-bottom: 3px solid #10B981;">
+                <div style="width: 60px; height: 60px; background-color: #10B981; border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center;">
+                    <span style="color: white; font-size: 30px;">✓</span>
+                </div>
+                <h2 style="color: #065F46; margin: 0 0 10px 0; font-size: 24px;">Welcome to Our Newsletter!</h2>
+                <p style="color: #047857; margin: 0; font-size: 16px;">Thank you for subscribing to Zone 5 Shop</p>
+            </div>
+
+            <!-- Content -->
+            <div style="padding: 30px;">
+                <p style="color: #111827; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
+                    Dear Valued Customer,
+                </p>
+                <p style="color: #111827; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
+                    Thank you for subscribing to the Zone 5 Shop newsletter! We're thrilled to have you as part of our fashion-forward community.
+                </p>
+
+                <!-- Benefits -->
+                <div style="background-color: #EFF6FF; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                    <h3 style="margin: 0 0 15px 0; color: #1E40AF; font-size: 18px;">What You'll Receive:</h3>
+                    <ul style="margin: 0; padding-left: 20px; color: #1E3A8A; line-height: 1.8;">
+                        <li>Exclusive early access to new collections</li>
+                        <li>Special subscriber-only discounts and offers</li>
+                        <li>Style tips and fashion inspiration</li>
+                        <li>Updates on seasonal sales and promotions</li>
+                        <li>Behind-the-scenes content and stories</li>
+                    </ul>
+                </div>
+
+                <!-- Call to Action -->
+                <div style="text-align: center; margin: 30px 0;">
+                    <a href="https://zone5-new-web-vercel.vercel.app/products.html" 
+                       style="display: inline-block; background-color: #D97706; color: white; padding: 15px 40px; 
+                              text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
+                        Start Shopping
+                    </a>
+                </div>
+
+                <!-- Social Media -->
+                <div style="background-color: #FEF3C7; padding: 20px; border-radius: 8px; text-align: center;">
+                    <h3 style="margin: 0 0 15px 0; color: #92400E; font-size: 16px;">Stay Connected</h3>
+                    <p style="margin: 0 0 15px 0; color: #78350F; font-size: 14px;">Follow us on social media for daily inspiration</p>
+                    <div style="margin-top: 15px;">
+                        <a href="https://www.instagram.com/zone5shop/" style="color: #D97706; text-decoration: none; margin: 0 10px; font-weight: bold;">Instagram</a>
+                        <a href="#" style="color: #D97706; text-decoration: none; margin: 0 10px; font-weight: bold;">Facebook</a>
+                        <a href="#" style="color: #D97706; text-decoration: none; margin: 0 10px; font-weight: bold;">Pinterest</a>
+                    </div>
+                </div>
+
+                <p style="color: #6B7280; font-size: 14px; line-height: 1.6; margin: 30px 0 0 0; text-align: center;">
+                    If you have any questions, feel free to reach out to us anytime.
+                </p>
+            </div>
+
+            <!-- Footer -->
+            <div style="background-color: #1F2937; padding: 30px; text-align: center;">
+                <p style="color: #9CA3AF; margin: 0 0 15px 0; font-size: 14px;">
+                    You're receiving this email because you subscribed to Zone 5 Shop newsletter
+                </p>
+                <p style="color: #6B7280; margin: 0; font-size: 12px;">&copy; 2026 Zone 5 Shop. All rights reserved.</p>
+                <p style="color: #6B7280; margin: 10px 0 0 0; font-size: 12px; font-style: italic;">Boldly Graceful</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    `;
+}
 
 // Function to generate contact form email HTML
 function generateContactEmailHTML(contactData) {
