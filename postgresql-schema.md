@@ -24,9 +24,9 @@ This document describes the PostgreSQL schema design for a scalable fashion eCom
 
 ---
 
-# 2. User & Seller Domain**
+# 2. User & Seller Domain
 
-## 2.1 users**
+## 2.1 users
 
 Stores customers, sellers, and admins.
 
@@ -43,7 +43,7 @@ CREATE TABLE users (
 );
 ```
 
-## 2.2 sellers**
+## 2.2 sellers
 
 Represents brands or merchants.
 
@@ -58,9 +58,9 @@ CREATE TABLE sellers (
     is_active BOOLEAN DEFAULT true
 );
 ```
-# 3. Product Catalog Domain**
+# 3. Product Catalog Domain
 
-## 3.1 products**
+## 3.1 products
 
 Represents the design or style level.
 
@@ -76,15 +76,13 @@ CREATE TABLE products (
     is_active BOOLEAN DEFAULT true
 );
 ```
-**Purpose**
+## Purpose
 
 -   Product discovery
-
 -   SEO & marketing
-
 -   Shared description across variants
 
-## 3.2 product_variants**
+## 3.2 product_variants
 
 Represents purchasable units (size, color, SKU).
 
@@ -102,13 +100,13 @@ CREATE TABLE product_variants (
     is_active BOOLEAN DEFAULT true
 );
 ```
-**Why Variants?**
+## Why Variants?
 
 Inventory, pricing, and ordering operate at this level.
 
-# 4. Inventory Domain**
+# 4. Inventory Domain
 
-## 4.1 inventory_locations**
+## 4.1 inventory_locations
 
 Represents warehouses, exhibitions, or stores.
 
@@ -122,7 +120,7 @@ CREATE TABLE inventory_locations (
 );
 ```
 
-## 4.2 inventory**
+## 4.2 inventory
 
 Tracks stock per variant per location.
 
@@ -137,15 +135,15 @@ UNIQUE (variant_id, location_id)\
 );
 ```
 
-**Design Rationale**
+## Design Rationale
 
 -   Prevents overselling
 -   Supports exhibition-specific stock
 -   Enables multi-warehouse setup
 
-# 5. Exhibition Domain**
+# 5. Exhibition Domain
 
-## 5.1 exhibitions**
+## 5.1 exhibitions
 
 ```SQL
 CREATE TABLE exhibitions (
@@ -158,7 +156,7 @@ CREATE TABLE exhibitions (
 );
 ```
 
-## 5.2 exhibition_stalls**
+## 5.2 exhibition_stalls
 
 ```SQL
 CREATE TABLE exhibition_stalls (
@@ -169,14 +167,14 @@ CREATE TABLE exhibition_stalls (
 );
 ```
 
-**Purpose**
+## Purpose
 
 -   Track seller participation
 -   Enable exhibition-based sales reporting
 
-# 6. Festival & Discount Domain**
+# 6. Festival & Discount Domain
 
-## 6.1 festivals**
+## 6.1 festivals
 
 ```SQL
 CREATE TABLE festivals (
@@ -188,7 +186,7 @@ CREATE TABLE festivals (
 );
 ```
 
-## 6.2 discounts**
+## 6.2 discounts
 
 Flexible discount system.
 
@@ -209,7 +207,7 @@ CREATE TABLE discounts (
 );
 ```
 
-**Supported Scenarios**
+## Supported Scenarios
 
 -   Festival sales
 -   Seller-wide discount
@@ -217,9 +215,9 @@ CREATE TABLE discounts (
 -   Variant-specific markdown
 -   Minimum order promotions
 
-# 7. Order Domain**
+# 7. Order Domain
 
-## 7.1 orders**
+## 7.1 orders
 
 Supports online and exhibition orders.
 
@@ -238,7 +236,7 @@ CREATE TABLE orders (
 );
 ```
 
-## 7.2 order_items**
+## 7.2 order_items
 
 ```SQL
 CREATE TABLE order_items (
@@ -251,11 +249,11 @@ CREATE TABLE order_items (
 );
 ```
 
-**Important**
+## Important
 
 Orders reference **variants**, not products.
 
-# 8. Payment Domain**
+# 8. Payment Domain
 
 ```SQL
 CREATE TABLE payments (
@@ -268,7 +266,7 @@ CREATE TABLE payments (
 );
 ```
 
-# 9. Reviews & Ratings**
+# 9. Reviews & Ratings
 
 ```SQL
 CREATE TABLE reviews (
@@ -281,7 +279,7 @@ CREATE TABLE reviews (
 );
 ```
 
-# 10. Recommended Indexes**
+# 10. Recommended Indexes
 
 ```SQL
 CREATE INDEX idx_products_seller ON products(seller_id);\
