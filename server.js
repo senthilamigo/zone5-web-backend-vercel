@@ -75,7 +75,7 @@ app.post('/api/send-contact-email', async (req, res) => {
 
         // Hardcoded seller email - UPDATE THIS WITH YOUR ACTUAL EMAIL
         //const SELLER_EMAIL = process.env.SELLER_EMAIL || 'support@zone5shop.com';
-        const SELLER_EMAIL = 'thisissenthilmail@gmail.com';
+        const SELLER_EMAIL = 'shopzonefive@gmail.com';
 
         // Generate HTML email content for seller
         const emailHTML = generateContactEmailHTML({
@@ -146,7 +146,7 @@ app.post('/api/subscribe-newsletter', async (req, res) => {
         }
 
         // Hardcoded seller email
-        const SELLER_EMAIL = 'thisissenthilmail@gmail.com';
+        const SELLER_EMAIL = 'shopzonefive@gmail.com';
         const subscribedAt = new Date().toLocaleString('en-IN', { 
             timeZone: 'Asia/Kolkata',
             year: 'numeric',
