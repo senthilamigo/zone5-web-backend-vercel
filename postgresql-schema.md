@@ -42,11 +42,11 @@ CREATE TABLE users (
     is_active BOOLEAN DEFAULT true
 );
 
-
-2.2 sellers
+## 2.2 sellers
 
 Represents brands or merchants.
 
+```sql
 CREATE TABLE sellers (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES users(id),
