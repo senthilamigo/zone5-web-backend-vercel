@@ -37,16 +37,18 @@ fashion eCommerce platform supporting:
 
 Stores customers, sellers, and admins.
 
-CREATE TABLE users (\
-id UUID PRIMARY KEY DEFAULT gen_random_uuid(),\
-email TEXT UNIQUE NOT NULL,\
-phone TEXT,\
-password_hash TEXT,\
-full_name TEXT,\
-role TEXT CHECK (role IN (\'customer\', \'seller\', \'admin\')),\
-created_at TIMESTAMP DEFAULT now(),\
-is_active BOOLEAN DEFAULT true\
+```SQL
+CREATE TABLE users (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email TEXT UNIQUE NOT NULL,
+    phone TEXT,
+    password_hash TEXT,
+    full_name TEXT,
+    role TEXT CHECK (role IN ('customer', 'seller', 'admin')),
+    created_at TIMESTAMP DEFAULT now(),
+    is_active BOOLEAN DEFAULT true
 );
+```
 
 **2.2 sellers**
 
