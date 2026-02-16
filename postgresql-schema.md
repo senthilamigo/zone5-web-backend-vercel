@@ -2,34 +2,27 @@
 
 **Overview**
 
-This document describes the PostgreSQL schema design for a scalable
-fashion eCommerce platform supporting:
+This document describes the PostgreSQL schema design for a scalable fashion eCommerce platform supporting:
 
--   Multi-seller marketplace
+- Multi-seller marketplace
+- Product variants (size, color, etc.)
+- Multi-location inventory (warehouse, exhibitions)
+- Festival-based and promotional discounts
+- Online and exhibition sales
+- Future extensibility using JSONB and flexible modeling
 
--   Product variants (size, color, etc.)
+---
 
--   Multi-location inventory (warehouse, exhibitions)
+# 1. Core Design Principles
 
--   Festival-based and promotional discounts
+- **Product ≠ Variant**
+- Inventory tracked at **variant level**
+- Discounts are **data-driven**
+- Multi-channel support (online + exhibitions)
+- Flexible attributes using `JSONB`
+- Time-bound entities (offers, festivals)
 
--   Online and exhibition sales
-
--   Future extensibility using JSONB and flexible modeling
-
-**1. Core Design Principles**
-
--   **Product ≠ Variant**
-
--   Inventory tracked at **variant level**
-
--   Discounts are **data-driven**
-
--   Multi-channel support (online + exhibitions)
-
--   Flexible attributes using JSONB
-
--   Time-bound entities (offers, festivals)
+---
 
 **2. User & Seller Domain**
 
@@ -54,16 +47,17 @@ CREATE TABLE users (
 
 Represents brands or merchants.
 
-CREATE TABLE sellers (\
-id UUID PRIMARY KEY DEFAULT gen_random_uuid(),\
-user_id UUID REFERENCES users(id),\
-brand_name TEXT NOT NULL,\
-description TEXT,\
-gst_number TEXT,\
-created_at TIMESTAMP DEFAULT now(),\
-is_active BOOLEAN DEFAULT true\
+```SQL
+CREATE TABLE sellers (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id),
+    brand_name TEXT NOT NULL,
+    description TEXT,
+    gst_number TEXT,
+    created_at TIMESTAMP DEFAULT now(),
+    is_active BOOLEAN DEFAULT true
 );
-
+```
 **3. Product Catalog Domain**
 
 **3.1 products**
