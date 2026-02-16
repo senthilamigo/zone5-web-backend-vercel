@@ -1,276 +1,281 @@
-# Fashion E-Commerce Database Schema Documentation
+**Fashion E-Commerce Database Schema Documentation**
 
-## Overview
+**Overview**
 
-This document describes the PostgreSQL schema design for a scalable fashion eCommerce platform supporting:
+This document describes the PostgreSQL schema design for a scalable
+fashion eCommerce platform supporting:
 
-- Multi-seller marketplace
-- Product variants (size, color, etc.)
-- Multi-location inventory (warehouse, exhibitions)
-- Festival-based and promotional discounts
-- Online and exhibition sales
-- Future extensibility using JSONB and flexible modeling
+-   Multi-seller marketplace
 
----
+-   Product variants (size, color, etc.)
 
-# 1. Core Design Principles
+-   Multi-location inventory (warehouse, exhibitions)
 
-- **Product ≠ Variant**
-- Inventory tracked at **variant level**
-- Discounts are **data-driven**
-- Multi-channel support (online + exhibitions)
-- Flexible attributes using `JSONB`
-- Time-bound entities (offers, festivals)
+-   Festival-based and promotional discounts
 
----
+-   Online and exhibition sales
 
-# 2. User & Seller Domain
+-   Future extensibility using JSONB and flexible modeling
 
-## 2.1 users
+**1. Core Design Principles**
+
+-   **Product ≠ Variant**
+
+-   Inventory tracked at **variant level**
+
+-   Discounts are **data-driven**
+
+-   Multi-channel support (online + exhibitions)
+
+-   Flexible attributes using JSONB
+
+-   Time-bound entities (offers, festivals)
+
+**2. User & Seller Domain**
+
+**2.1 users**
 
 Stores customers, sellers, and admins.
 
-```sql
-CREATE TABLE users (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    email TEXT UNIQUE NOT NULL,
-    phone TEXT,
-    password_hash TEXT,
-    full_name TEXT,
-    role TEXT CHECK (role IN ('customer', 'seller', 'admin')),
-    created_at TIMESTAMP DEFAULT now(),
-    is_active BOOLEAN DEFAULT true
+CREATE TABLE users (\
+id UUID PRIMARY KEY DEFAULT gen_random_uuid(),\
+email TEXT UNIQUE NOT NULL,\
+phone TEXT,\
+password_hash TEXT,\
+full_name TEXT,\
+role TEXT CHECK (role IN (\'customer\', \'seller\', \'admin\')),\
+created_at TIMESTAMP DEFAULT now(),\
+is_active BOOLEAN DEFAULT true\
 );
 
-## 2.2 sellers
+**2.2 sellers**
 
 Represents brands or merchants.
 
-```sql
-CREATE TABLE sellers (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES users(id),
-    brand_name TEXT NOT NULL,
-    description TEXT,
-    gst_number TEXT,
-    created_at TIMESTAMP DEFAULT now(),
-    is_active BOOLEAN DEFAULT true
+CREATE TABLE sellers (\
+id UUID PRIMARY KEY DEFAULT gen_random_uuid(),\
+user_id UUID REFERENCES users(id),\
+brand_name TEXT NOT NULL,\
+description TEXT,\
+gst_number TEXT,\
+created_at TIMESTAMP DEFAULT now(),\
+is_active BOOLEAN DEFAULT true\
 );
-3. Product Catalog Domain
-3.1 products
+
+**3. Product Catalog Domain**
+
+**3.1 products**
 
 Represents the design or style level.
 
-CREATE TABLE products (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    seller_id UUID REFERENCES sellers(id),
-    name TEXT NOT NULL,
-    description TEXT,
-    category_id UUID,
-    gender TEXT CHECK (gender IN ('men','women','kids','unisex')),
-    created_at TIMESTAMP DEFAULT now(),
-    is_active BOOLEAN DEFAULT true
+CREATE TABLE products (\
+id UUID PRIMARY KEY DEFAULT gen_random_uuid(),\
+seller_id UUID REFERENCES sellers(id),\
+name TEXT NOT NULL,\
+description TEXT,\
+category_id UUID,\
+gender TEXT CHECK (gender IN (\'men\',\'women\',\'kids\',\'unisex\')),\
+created_at TIMESTAMP DEFAULT now(),\
+is_active BOOLEAN DEFAULT true\
 );
-Purpose
 
-Product discovery
+**Purpose**
 
-SEO & marketing
+-   Product discovery
 
-Shared description across variants
+-   SEO & marketing
 
-3.2 product_variants
+-   Shared description across variants
+
+**3.2 product_variants**
 
 Represents purchasable units (size, color, SKU).
 
-CREATE TABLE product_variants (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    product_id UUID REFERENCES products(id),
-    sku TEXT UNIQUE NOT NULL,
-    color TEXT,
-    size TEXT,
-    material TEXT,
-    attributes JSONB,
-    base_price NUMERIC(10,2) NOT NULL,
-    created_at TIMESTAMP DEFAULT now(),
-    is_active BOOLEAN DEFAULT true
+CREATE TABLE product_variants (\
+id UUID PRIMARY KEY DEFAULT gen_random_uuid(),\
+product_id UUID REFERENCES products(id),\
+sku TEXT UNIQUE NOT NULL,\
+color TEXT,\
+size TEXT,\
+material TEXT,\
+attributes JSONB,\
+base_price NUMERIC(10,2) NOT NULL,\
+created_at TIMESTAMP DEFAULT now(),\
+is_active BOOLEAN DEFAULT true\
 );
-Why Variants?
+
+**Why Variants?**
 
 Inventory, pricing, and ordering operate at this level.
 
-4. Inventory Domain
-4.1 inventory_locations
+**4. Inventory Domain**
+
+**4.1 inventory_locations**
 
 Represents warehouses, exhibitions, or stores.
 
-CREATE TABLE inventory_locations (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    type TEXT CHECK (type IN ('warehouse','exhibition','store')),
-    name TEXT,
-    city TEXT,
-    metadata JSONB
+CREATE TABLE inventory_locations (\
+id UUID PRIMARY KEY DEFAULT gen_random_uuid(),\
+type TEXT CHECK (type IN (\'warehouse\',\'exhibition\',\'store\')),\
+name TEXT,\
+city TEXT,\
+metadata JSONB\
 );
-4.2 inventory
+
+**4.2 inventory**
 
 Tracks stock per variant per location.
 
-CREATE TABLE inventory (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    variant_id UUID REFERENCES product_variants(id),
-    location_id UUID REFERENCES inventory_locations(id),
-    quantity INT NOT NULL,
-    updated_at TIMESTAMP DEFAULT now(),
-    UNIQUE (variant_id, location_id)
+CREATE TABLE inventory (\
+id UUID PRIMARY KEY DEFAULT gen_random_uuid(),\
+variant_id UUID REFERENCES product_variants(id),\
+location_id UUID REFERENCES inventory_locations(id),\
+quantity INT NOT NULL,\
+updated_at TIMESTAMP DEFAULT now(),\
+UNIQUE (variant_id, location_id)\
 );
-Design Rationale
 
-Prevents overselling
+**Design Rationale**
 
-Supports exhibition-specific stock
+-   Prevents overselling
 
-Enables multi-warehouse setup
+-   Supports exhibition-specific stock
 
-5. Exhibition Domain
-5.1 exhibitions
-CREATE TABLE exhibitions (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name TEXT,
-    city TEXT,
-    start_date DATE,
-    end_date DATE,
-    organizer TEXT
+-   Enables multi-warehouse setup
+
+**5. Exhibition Domain**
+
+**5.1 exhibitions**
+
+CREATE TABLE exhibitions (\
+id UUID PRIMARY KEY DEFAULT gen_random_uuid(),\
+name TEXT,\
+city TEXT,\
+start_date DATE,\
+end_date DATE,\
+organizer TEXT\
 );
-5.2 exhibition_stalls
-CREATE TABLE exhibition_stalls (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    exhibition_id UUID REFERENCES exhibitions(id),
-    seller_id UUID REFERENCES sellers(id),
-    stall_number TEXT
+
+**5.2 exhibition_stalls**
+
+CREATE TABLE exhibition_stalls (\
+id UUID PRIMARY KEY DEFAULT gen_random_uuid(),\
+exhibition_id UUID REFERENCES exhibitions(id),\
+seller_id UUID REFERENCES sellers(id),\
+stall_number TEXT\
 );
-Purpose
 
-Track seller participation
+**Purpose**
 
-Enable exhibition-based sales reporting
+-   Track seller participation
 
-6. Festival & Discount Domain
-6.1 festivals
-CREATE TABLE festivals (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name TEXT,
-    start_date DATE,
-    end_date DATE,
-    region TEXT
+-   Enable exhibition-based sales reporting
+
+**6. Festival & Discount Domain**
+
+**6.1 festivals**
+
+CREATE TABLE festivals (\
+id UUID PRIMARY KEY DEFAULT gen_random_uuid(),\
+name TEXT,\
+start_date DATE,\
+end_date DATE,\
+region TEXT\
 );
-6.2 discounts
+
+**6.2 discounts**
 
 Flexible discount system.
 
-CREATE TABLE discounts (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name TEXT,
-    discount_type TEXT CHECK (discount_type IN ('percentage','flat')),
-    discount_value NUMERIC(10,2),
-    valid_from TIMESTAMP,
-    valid_to TIMESTAMP,
-    applies_to TEXT CHECK (
-        applies_to IN ('product','variant','category','seller','festival')
-    ),
-    reference_id UUID,
-    min_order_value NUMERIC(10,2),
-    is_active BOOLEAN DEFAULT true
+CREATE TABLE discounts (\
+id UUID PRIMARY KEY DEFAULT gen_random_uuid(),\
+name TEXT,\
+discount_type TEXT CHECK (discount_type IN (\'percentage\',\'flat\')),\
+discount_value NUMERIC(10,2),\
+valid_from TIMESTAMP,\
+valid_to TIMESTAMP,\
+applies_to TEXT CHECK (\
+applies_to IN
+(\'product\',\'variant\',\'category\',\'seller\',\'festival\')\
+),\
+reference_id UUID,\
+min_order_value NUMERIC(10,2),\
+is_active BOOLEAN DEFAULT true\
 );
-Supported Scenarios
 
-Festival sales
+**Supported Scenarios**
 
-Seller-wide discount
+-   Festival sales
 
-Product clearance
+-   Seller-wide discount
 
-Variant-specific markdown
+-   Product clearance
 
-Minimum order promotions
+-   Variant-specific markdown
 
-7. Order Domain
-7.1 orders
+-   Minimum order promotions
+
+**7. Order Domain**
+
+**7.1 orders**
 
 Supports online and exhibition orders.
 
-CREATE TABLE orders (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES users(id),
-    seller_id UUID REFERENCES sellers(id),
-    order_source TEXT CHECK (order_source IN ('online','exhibition')),
-    exhibition_id UUID REFERENCES exhibitions(id),
-    total_amount NUMERIC(10,2),
-    discount_amount NUMERIC(10,2),
-    final_amount NUMERIC(10,2),
-    status TEXT,
-    created_at TIMESTAMP DEFAULT now()
+CREATE TABLE orders (\
+id UUID PRIMARY KEY DEFAULT gen_random_uuid(),\
+user_id UUID REFERENCES users(id),\
+seller_id UUID REFERENCES sellers(id),\
+order_source TEXT CHECK (order_source IN (\'online\',\'exhibition\')),\
+exhibition_id UUID REFERENCES exhibitions(id),\
+total_amount NUMERIC(10,2),\
+discount_amount NUMERIC(10,2),\
+final_amount NUMERIC(10,2),\
+status TEXT,\
+created_at TIMESTAMP DEFAULT now()\
 );
-7.2 order_items
-CREATE TABLE order_items (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    order_id UUID REFERENCES orders(id),
-    variant_id UUID REFERENCES product_variants(id),
-    quantity INT,
-    price NUMERIC(10,2),
-    discount NUMERIC(10,2)
+
+**7.2 order_items**
+
+CREATE TABLE order_items (\
+id UUID PRIMARY KEY DEFAULT gen_random_uuid(),\
+order_id UUID REFERENCES orders(id),\
+variant_id UUID REFERENCES product_variants(id),\
+quantity INT,\
+price NUMERIC(10,2),\
+discount NUMERIC(10,2)\
 );
-Important
 
-Orders reference variants, not products.
+**Important**
 
-8. Payment Domain
-CREATE TABLE payments (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    order_id UUID REFERENCES orders(id),
-    payment_method TEXT,
-    payment_status TEXT,
-    transaction_ref TEXT,
-    paid_at TIMESTAMP
+Orders reference **variants**, not products.
+
+**8. Payment Domain**
+
+CREATE TABLE payments (\
+id UUID PRIMARY KEY DEFAULT gen_random_uuid(),\
+order_id UUID REFERENCES orders(id),\
+payment_method TEXT,\
+payment_status TEXT,\
+transaction_ref TEXT,\
+paid_at TIMESTAMP\
 );
-9. Reviews & Ratings
-CREATE TABLE reviews (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    product_id UUID REFERENCES products(id),
-    user_id UUID REFERENCES users(id),
-    rating INT CHECK (rating BETWEEN 1 AND 5),
-    comment TEXT,
-    created_at TIMESTAMP DEFAULT now()
+
+**9. Reviews & Ratings**
+
+CREATE TABLE reviews (\
+id UUID PRIMARY KEY DEFAULT gen_random_uuid(),\
+product_id UUID REFERENCES products(id),\
+user_id UUID REFERENCES users(id),\
+rating INT CHECK (rating BETWEEN 1 AND 5),\
+comment TEXT,\
+created_at TIMESTAMP DEFAULT now()\
 );
-10. Scalability & Future Enhancements
 
-This schema supports:
+**10. Recommended Indexes**
 
-Multi-seller marketplace
-
-Multi-warehouse
-
-Exhibition stalls
-
-Festival campaigns
-
-Dynamic discounts
-
-Analytics segmentation (online vs exhibition)
-
-Flexible garment attributes via JSONB
-
-Regional campaigns
-
-Loyalty systems (future addition)
-
-Influencer programs
-
-Subscription fashion models
-
-11. Recommended Indexes
-CREATE INDEX idx_products_seller ON products(seller_id);
-CREATE INDEX idx_variants_product ON product_variants(product_id);
-CREATE INDEX idx_inventory_variant ON inventory(variant_id);
-CREATE INDEX idx_orders_user ON orders(user_id);
-CREATE INDEX idx_orders_created_at ON orders(created_at);
+CREATE INDEX idx_products_seller ON products(seller_id);\
+CREATE INDEX idx_variants_product ON product_variants(product_id);\
+CREATE INDEX idx_inventory_variant ON inventory(variant_id);\
+CREATE INDEX idx_orders_user ON orders(user_id);\
+CREATE INDEX idx_orders_created_at ON orders(created_at);\
 CREATE INDEX idx_discounts_validity ON discounts(valid_from, valid_to);
