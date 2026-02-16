@@ -1,39 +1,36 @@
-Fashion E-Commerce Database Schema Documentation
-Overview
+# Fashion E-Commerce Database Schema Documentation
+
+## Overview
 
 This document describes the PostgreSQL schema design for a scalable fashion eCommerce platform supporting:
 
-Multi-seller marketplace
+- Multi-seller marketplace
+- Product variants (size, color, etc.)
+- Multi-location inventory (warehouse, exhibitions)
+- Festival-based and promotional discounts
+- Online and exhibition sales
+- Future extensibility using JSONB and flexible modeling
 
-Product variants (size, color, etc.)
+---
 
-Multi-location inventory (warehouse, exhibitions)
+# 1. Core Design Principles
 
-Festival-based and promotional discounts
+- **Product ≠ Variant**
+- Inventory tracked at **variant level**
+- Discounts are **data-driven**
+- Multi-channel support (online + exhibitions)
+- Flexible attributes using `JSONB`
+- Time-bound entities (offers, festivals)
 
-Online and exhibition sales
+---
 
-Future extensibility using JSONB and flexible modeling
+# 2. User & Seller Domain
 
-1. Core Design Principles
-
-Product ≠ Variant
-
-Inventory tracked at variant level
-
-Discounts are data-driven
-
-Multi-channel support (online + exhibitions)
-
-Flexible attributes using JSONB
-
-Time-bound entities (offers, festivals)
-
-2. User & Seller Domain
-2.1 users
+## 2.1 users
 
 Stores customers, sellers, and admins.
 
+```sql
 CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email TEXT UNIQUE NOT NULL,
@@ -44,6 +41,8 @@ CREATE TABLE users (
     created_at TIMESTAMP DEFAULT now(),
     is_active BOOLEAN DEFAULT true
 );
+
+
 2.2 sellers
 
 Represents brands or merchants.
