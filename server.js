@@ -1,5 +1,6 @@
 require('./src/config'); // loads dotenv
-const app = require('./src/modules/app');
+const express = require('express'); // required for Vercel entrypoint detection
+const app = require('./src/app');
 
 // Export for Vercel serverless functions
 module.exports = app;
